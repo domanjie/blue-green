@@ -1,15 +1,17 @@
 services:
   blue:
-    env_file: 
-      - .env 
     image: ${BLUE_IMAGE}
+    environment:
+      - APP_POOL=blue
+      - RELEASE_ID=${RELEASE_ID_BLUE}
     ports:
       - "8081:3000"
   
   green: 
-    env_file:
-      - .env 
     image: ${GREEN_IMAGE}
+    environment:
+      - APP_POOL=green
+      - RELEASE_ID=${RELEASE_ID_GREEN}
     ports:
       - "8082:3000"
   
@@ -18,9 +20,10 @@ services:
     env_file:
       - .env
     ports:
-      - "8000:80"
+      - "8080:80"
     volumes:
       - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
+      - ./switch.sh:/switch.sh:ro
     depends_on:
       - blue
       - green
@@ -28,6 +31,7 @@ services:
       /bin/bash -c "
         apt-get update && apt-get install --no-install-recommends -y gettext >/dev/null &&
         echo '[nginx] Starting with ACTIVE_POOL=${ACTIVE_POOL}' &&
+        nohup /switch.sh >/dev/null 2>&1 & disown &&
         envsubst '$${ACTIVE_POOL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && cat /etc/nginx/nginx.conf &&
         nginx -g 'daemon off;'
       "
