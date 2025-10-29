@@ -1,0 +1,46 @@
+worker_processes auto;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    upstream blue {
+        server blue:8080;
+    }
+
+    upstream green {
+        server green:8080;
+    }
+
+    map ${ACTIVE_POOL} $backend {
+        default blue;
+        blue blue;
+        green green;
+    }
+
+    server {
+        listen 80;
+
+        location / {
+            proxy_pass http://$backend;
+            proxy_connect_timeout 2s;
+            proxy_read_timeout 4s;
+
+            # Don’t hide any default headers
+            proxy_pass_header Server;
+            proxy_pass_header Date;
+            proxy_pass_header X-Pad;
+            proxy_pass_header X-Accel-Buffering;
+            proxy_pass_header X-Accel-Redirect;
+            proxy_pass_header X-Accel-Limit-Rate;
+            proxy_pass_header X-Accel-Expires;
+
+            # Fallback if current backend fails
+            proxy_next_upstream error timeout http_502 http_503 http_504;
+            proxy_next_upstream_timeout 4s;
+            proxy_next_upstream_tries 1;
+        }
+    }
+}
+
