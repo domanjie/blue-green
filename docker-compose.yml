@@ -31,7 +31,6 @@ services:
       /bin/bash -c "
         apt-get update && apt-get install --no-install-recommends -y gettext >/dev/null &&
         echo '[nginx] Starting with ACTIVE_POOL=${ACTIVE_POOL}' &&
-        nohup /switch.sh >/dev/null 2>&1 & disown &&
-        envsubst '$${ACTIVE_POOL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf && cat /etc/nginx/nginx.conf &&
+        envsubst '$${ACTIVE_POOL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf &&
         nginx -g 'daemon off;'
       "
