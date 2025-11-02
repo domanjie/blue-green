@@ -1,6 +1,7 @@
 services:
   blue:
     image: ${BLUE_IMAGE}
+    container_name: blue
     environment:
       - APP_POOL=blue
       - RELEASE_ID=${RELEASE_ID_BLUE}
@@ -9,6 +10,7 @@ services:
   
   green: 
     image: ${GREEN_IMAGE}
+    container_name: green
     environment:
       - APP_POOL=green
       - RELEASE_ID=${RELEASE_ID_GREEN}
@@ -17,20 +19,36 @@ services:
   
   web-nginx:
     image: nginx:trixie-perl
+    container_name: web-nginx
     env_file:
       - .env
     ports:
       - "8080:80"
     volumes:
       - ./nginx.conf.template:/etc/nginx/nginx.conf.template:ro
-      - ./switch.sh:/switch.sh:ro
+      - nginx_logs:/var/log/nginx
     depends_on:
       - blue
       - green
     command: >
       /bin/bash -c "
+        rm -f /var/log/nginx/access.log /var/log/nginx/error.log &&
+        touch /var/log/nginx/access.log /var/log/nginx/error.log &&
         apt-get update && apt-get install --no-install-recommends -y gettext >/dev/null &&
         echo '[nginx] Starting with ACTIVE_POOL=${ACTIVE_POOL}' &&
         envsubst '$${ACTIVE_POOL}' < /etc/nginx/nginx.conf.template > /etc/nginx/nginx.conf &&
         nginx -g 'daemon off;'
       "
+  alert_watcher:
+    build: ./watcher
+    container_name: watcher
+    volumes:
+      - nginx_logs:/var/log/nginx
+    env_file:
+      - .env
+    depends_on:
+      - web-nginx
+
+volumes:
+  nginx_logs:
+  
